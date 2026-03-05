@@ -1,18 +1,24 @@
-import React from "react";
+import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { FaSearch, FaShoppingCart, FaPlus, FaFilter, FaEllipsisV, FaSignOutAlt, FaUserCircle } from "react-icons/fa";
+import { 
+  FaSearch, FaShoppingCart, FaPlus, FaFilter, 
+  FaUserCircle, FaSignOutAlt, FaHeart, FaHistory,
+  FaTag, FaCog
+} from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 import { filterByPrice, searchByName } from "../Service/Actions/productActions";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import { logoutAsync } from "../Service/Actions/authActions";
 import { toast } from "react-toastify";
+import { motion, AnimatePresence } from "framer-motion";
 
 const Navbar = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch();
   const cart = useSelector((state) => state.cart);
   const user = useSelector((state) => state.auth.user);
+  const [searchFocused, setSearchFocused] = useState(false);
 
   const handlePriceChange = (e) => {
     const value = e.target.value;
@@ -23,17 +29,15 @@ const Navbar = () => {
       dispatch(filterByPrice(range));
     }
   };
+
   const handleCart = () => {
     if (!user) {
-      toast.error("You must be signed in to view your cart.");
-      setTimeout(() => {
-        navigate("/signin");
-      }, 3000);
+      toast.warning("Please sign in to view your cart");
+      setTimeout(() => navigate("/signin"), 2000);
     } else {
       navigate("/cart");
     }
   };
-
 
   const handleSearch = (e) => {
     dispatch(searchByName(e.target.value));
@@ -41,120 +45,168 @@ const Navbar = () => {
 
   const handleAddProduct = () => {
     if (!user) {
-      alert("You must be signed in to add a product.");
+      toast.warning("Please sign in to add products");
       return navigate("/signin");
     }
     navigate("/add-product");
   };
 
   const handleLogout = async () => {
-    const confirmed = window.confirm("Are you sure you want to sign out?");
-    if (!confirmed) return;
     try {
       await signOut(auth);
       dispatch(logoutAsync());
+      toast.success("Signed out successfully");
       navigate("/signin");
     } catch {
-      alert("Failed to sign out.");
+      toast.error("Failed to sign out");
     }
-  }
+  };
 
   return (
-    <nav className="navbar navbar-expand-lg minimal-navbar shadow-sm py-2 px-3">
-      <div className="container-fluid">
-        {/* Brand */}
-        <a className="navbar-brand fw-bold minimal-navbar-brand" href="/">
-          Flipkart
-        </a>
+    <motion.nav
+      initial={{ y: -100 }}
+      animate={{ y: 0 }}
+      transition={{ type: "spring", stiffness: 50 }}
+      className="minimal-navbar"
+    >
+      <div className="container-fluid px-4">
+        <div className="d-flex align-items-center justify-content-between flex-wrap">
+          {/* Brand */}
+          <motion.div
+            whileHover={{ scale: 1.05 }}
+            className="minimal-navbar-brand cursor-pointer"
+            onClick={() => navigate("/")}
+          >
+            FlipZone
+          </motion.div>
 
-        {/* Toggler for mobile */}
-        <button
-          className="navbar-toggler"
-          type="button"
-          data-bs-toggle="collapse"
-          data-bs-target="#navbarContent"
-          aria-controls="navbarContent"
-          aria-expanded="false"
-          aria-label="Toggle navigation"
-        >
-          <span className="navbar-toggler-icon"></span>
-        </button>
-
-        {/* Collapsible Content */}
-        <div className="collapse navbar-collapse" id="navbarContent">
           {/* Search Bar */}
-          <div className="w-100 mt-3 mt-lg-0 mx-lg-3 position-relative" style={{ maxWidth: "600px" }}>
-            <input
-              type="text"
-              className="form-control minimal-search-input ps-5"
-              placeholder="Search for products and categories"
-              onChange={handleSearch}
-            />
-            <FaSearch className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" />
+          <div className="position-relative mx-4 flex-grow-1" style={{ maxWidth: "600px" }}>
+            <motion.div
+              animate={searchFocused ? { scale: 1.02 } : { scale: 1 }}
+              className="position-relative"
+            >
+              <input
+                type="text"
+                className="minimal-search-input w-100"
+                placeholder="Search for products, brands and more..."
+                onChange={handleSearch}
+                onFocus={() => setSearchFocused(true)}
+                onBlur={() => setSearchFocused(false)}
+              />
+              <FaSearch className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" />
+            </motion.div>
           </div>
 
-          {/* Right Side Items */}
-          <ul className="navbar-nav ms-auto mt-3 mt-lg-0 d-flex align-items-center gap-3">
-            <li className="nav-item">
-              <button className="btn minimal-btn w-100" onClick={handleAddProduct} title="Add Product">
-                <FaPlus />
-              </button>
-            </li>
+          {/* Action Buttons */}
+          <div className="d-flex align-items-center gap-3">
+            {/* Add Product */}
+            <motion.button
+              whileHover={{ scale: 1.05, rotate: 90 }}
+              whileTap={{ scale: 0.95 }}
+              className="minimal-btn"
+              onClick={handleAddProduct}
+              title="Add Product"
+            >
+              <FaPlus />
+            </motion.button>
 
-            <li className="nav-item d-flex align-items-center">
+            {/* Filter */}
+            <div className="d-flex align-items-center">
               <FaFilter className="me-2 text-muted" />
-              <select className="form-select minimal-select" onChange={handlePriceChange}>
+              <motion.select
+                whileHover={{ scale: 1.02 }}
+                className="minimal-select"
+                onChange={handlePriceChange}
+              >
                 <option value="">All Prices</option>
                 <option value="0-500">Under ₹500</option>
                 <option value="500-1000">₹500 - ₹1000</option>
                 <option value="1000-1500">₹1000 - ₹1500</option>
                 <option value="1500-2000">₹1500 - ₹2000</option>
                 <option value="2000+">Above ₹2000</option>
-              </select>
-            </li>
+              </motion.select>
+            </div>
 
-            <li className="nav-item">
-              <div className="position-relative minimal-cart" onClick={handleCart} style={{ cursor: "pointer" }}>
-                <FaShoppingCart className="fs-5 me-1" />
-                <span className="d-none d-lg-inline">Cart</span>
+            {/* Cart */}
+            <motion.div
+              whileHover={{ scale: 1.05 }}
+              whileTap={{ scale: 0.95 }}
+              className="minimal-cart position-relative"
+              onClick={handleCart}
+            >
+              <FaShoppingCart />
+              <span className="d-none d-lg-inline">Cart</span>
+              <AnimatePresence>
                 {cart.length > 0 && (
-                  <span className="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger">
+                  <motion.span
+                    initial={{ scale: 0 }}
+                    animate={{ scale: 1 }}
+                    exit={{ scale: 0 }}
+                    className="position-absolute top-0 start-100 translate-middle badge rounded-pill"
+                    style={{ background: 'var(--danger-gradient)' }}
+                  >
                     {cart.length}
-                  </span>
+                  </motion.span>
                 )}
-              </div>
-            </li>
+              </AnimatePresence>
+            </motion.div>
 
-            <li className="nav-item dropdown">
+            {/* User Menu */}
+            <div className="dropdown">
               {user ? (
                 <>
-                  <button
-                    className="btn minimal-btn dropdown-toggle d-flex align-items-center"
+                  <motion.button
+                    whileHover={{ scale: 1.05 }}
+                    className="minimal-btn dropdown-toggle d-flex align-items-center"
                     data-bs-toggle="dropdown"
                   >
                     <FaUserCircle className="me-1" />
-                    <span className="d-none d-lg-inline">{user.email.split("@")[0]}</span>
-                  </button>
-                  <ul className="dropdown-menu dropdown-menu-end">
-                    <li><button className="dropdown-item" onClick={() => navigate("/profile")}>Profile</button></li>
-                    <li><button className="dropdown-item" onClick={() => navigate("/orders")}>Orders</button></li>
-                    <li><button className="dropdown-item" onClick={() => navigate("/coupons")}>Coupons</button></li>
+                    <span className="d-none d-lg-inline">{user.email?.split("@")[0]}</span>
+                  </motion.button>
+                  <ul className="dropdown-menu dropdown-menu-end animate-slideDown">
+                    <li>
+                      <button className="dropdown-item" onClick={() => navigate("/profile")}>
+                        <FaUserCircle className="me-2" /> Profile
+                      </button>
+                    </li>
+                    <li>
+                      <button className="dropdown-item" onClick={() => navigate("/orders")}>
+                        <FaHistory className="me-2" /> Orders
+                      </button>
+                    </li>
+                    <li>
+                      <button className="dropdown-item" onClick={() => navigate("/wishlist")}>
+                        <FaHeart className="me-2" /> Wishlist
+                      </button>
+                    </li>
+                    <li>
+                      <button className="dropdown-item" onClick={() => navigate("/coupons")}>
+                        <FaTag className="me-2" /> Coupons
+                      </button>
+                    </li>
                     <li><hr className="dropdown-divider" /></li>
                     <li>
                       <button className="dropdown-item text-danger" onClick={handleLogout}>
-                        <FaSignOutAlt /> Sign Out
+                        <FaSignOutAlt className="me-2" /> Sign Out
                       </button>
                     </li>
                   </ul>
                 </>
               ) : (
-                <button className="btn minimal-btn" onClick={() => navigate("/signin")}>Sign In</button>
+                <motion.button
+                  whileHover={{ scale: 1.05 }}
+                  className="btn-gradient"
+                  onClick={() => navigate("/signin")}
+                >
+                  Sign In
+                </motion.button>
               )}
-            </li>
-          </ul>
+            </div>
+          </div>
         </div>
       </div>
-    </nav>
+    </motion.nav>
   );
 };
 
