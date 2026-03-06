@@ -4,20 +4,22 @@ import { getAnalytics } from "firebase/analytics";
 import { getFirestore } from "firebase/firestore";
 import { getAuth, FacebookAuthProvider, GoogleAuthProvider } from "firebase/auth";
 
-// Your Firebase config
 const firebaseConfig = {
-  apiKey: "AIzaSyDETd0MeQOJ3J5V3Vzy4faHwnJSbeGPbW8",
-  authDomain: "flipcart-clone-cc07d.firebaseapp.com",
-  projectId: "flipcart-clone-cc07d",
-  storageBucket: "flipcart-clone-cc07d.appspot.com",
-  messagingSenderId: "1020643975758",
-  appId: "1:1020643975758:web:56c5086c2c0cff9b54d91f",
-  measurementId: "G-JL2R317765"
+  apiKey: import.meta.env.VITE_FIREBASE_API_KEY,
+  authDomain: import.meta.env.VITE_FIREBASE_AUTH_DOMAIN,
+  projectId: import.meta.env.VITE_FIREBASE_PROJECT_ID,
+  storageBucket: import.meta.env.VITE_FIREBASE_STORAGE_BUCKET,
+  messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
+  appId: import.meta.env.VITE_FIREBASE_APP_ID,
+  measurementId: import.meta.env.VITE_FIREBASE_MEASUREMENT_ID
 };
 
-// Initialize Firebase
 const app = initializeApp(firebaseConfig);
-const analytics = getAnalytics(app);
+let analytics;
+
+if (typeof window !== "undefined") {
+  analytics = getAnalytics(app);
+}
 
 export const auth = getAuth(app);
 export const db = getFirestore(app);

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import './cursor.css';
 
 const Cursor = () => {
+
   const [position, setPosition] = useState({ x: 0, y: 0 });
   const [clicked, setClicked] = useState(false);
 
@@ -10,7 +11,7 @@ const Cursor = () => {
 
     const click = () => {
       setClicked(true);
-      setTimeout(() => setClicked(false), 600); // Match animation time
+      setTimeout(() => setClicked(false), 600); 
     };
 
     window.addEventListener('mousemove', move);
