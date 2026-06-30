@@ -1,4 +1,4 @@
-import { db } from "../../firebase";
+import { db, auth } from "../../firebase";
 import {
   collection,
   doc,
@@ -8,58 +8,52 @@ import {
   getDocs,
 } from "firebase/firestore";
 
-const cartCollection = collection(db, "cart");
-
 export const fetchCartAsync = () => async (dispatch) => {
   const user = auth.currentUser;
   if (!user) return;
-
   const uid = user.uid;
-  const snapshot = await getDocs(collection(db, `users/${uid}/cart`));
-
-  const cartItems = snapshot.docs.map((doc) => ({
-    id: doc.id,
-    ...doc.data(),
-  }));
-
-  dispatch({ type: "SET_CART", payload: cartItems });
-};
-
-
-export const addToCartAsync = (product) => async (dispatch, getState) => {
-  const existing = getState().cart.find((item) => item.id === product.id);
-
-  if (existing) {
-    dispatch(increaseQuantityAsync(product.id));
-  } else {
-    const newItem = { ...product, quantity: 1 };
-    await setDoc(doc(db, "cart", product.id), newItem);
-    dispatch({ type: "ADD_TO_CART", payload: newItem });
+  try {
+    const snapshot = await getDocs(collection(db, `users/${uid}/cart`));
+    const cartItems = snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
+    dispatch({ type: "SET_CART", payload: cartItems });
+  } catch (e) {
+    console.error("fetchCartAsync error", e);
   }
 };
 
-export const increaseQuantityAsync = (id) => async (dispatch, getState) => {
-  const item = getState().cart.find((item) => item.id === id);
-  const newQty = item.quantity + 1;
+export const addToCartAsync = (product) => async (dispatch, getState) => {
+  const existing = getState().cart.find((item) => item.id === product.id);
+  if (existing) {
+    dispatch(increaseQuantityAsync(product.id));
+    return;
+  }
+  const newItem = { ...product, quantity: 1 };
+  try { await setDoc(doc(db, "cart", String(product.id)), newItem); } catch (e) { /* offline ok */ }
+  dispatch({ type: "ADD_TO_CART", payload: newItem });
+};
 
-  await updateDoc(doc(db, "cart", id), { quantity: newQty });
+export const increaseQuantityAsync = (id) => async (dispatch, getState) => {
+  const item = getState().cart.find((i) => i.id === id);
+  if (!item) return;
+  const newQty = (item.quantity || 1) + 1;
+  try { await updateDoc(doc(db, "cart", String(id)), { quantity: newQty }); } catch (e) {}
   dispatch({ type: "INCREASE_QUANTITY", payload: id });
 };
 
 export const decreaseQuantityAsync = (id) => async (dispatch, getState) => {
-  const item = getState().cart.find((item) => item.id === id);
-  const newQty = item.quantity - 1;
-
+  const item = getState().cart.find((i) => i.id === id);
+  if (!item) return;
+  const newQty = (item.quantity || 1) - 1;
   if (newQty > 0) {
-    await updateDoc(doc(db, "cart", id), { quantity: newQty });
+    try { await updateDoc(doc(db, "cart", String(id)), { quantity: newQty }); } catch (e) {}
     dispatch({ type: "DECREASE_QUANTITY", payload: id });
   } else {
-    await deleteDoc(doc(db, "cart", id));
+    try { await deleteDoc(doc(db, "cart", String(id))); } catch (e) {}
     dispatch({ type: "REMOVE_FROM_CART", payload: id });
   }
 };
 
 export const removeFromCartAsync = (id) => async (dispatch) => {
-  await deleteDoc(doc(db, "cart", id));
+  try { await deleteDoc(doc(db, "cart", String(id))); } catch (e) {}
   dispatch({ type: "REMOVE_FROM_CART", payload: id });
 };

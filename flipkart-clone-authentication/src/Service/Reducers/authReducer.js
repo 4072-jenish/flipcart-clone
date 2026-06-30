@@ -1,4 +1,6 @@
-const storedUser = JSON.parse(sessionStorage.getItem("user"));
+const storedUser = (() => {
+  try { return JSON.parse(sessionStorage.getItem("user")); } catch { return null; }
+})();
 
 const initialState = {
   user: storedUser || null,
@@ -13,6 +15,7 @@ const authReducer = (state = initialState, action) => {
       return { ...state, user: action.payload, error: null };
 
     case "LOGOUT":
+    case "LOGOUT_SUCCESS":
       sessionStorage.removeItem("user");
       return { ...state, user: null, error: null };
 

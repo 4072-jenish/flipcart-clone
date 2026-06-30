@@ -1,212 +1,168 @@
 import React, { useState } from "react";
 import { useSelector, useDispatch } from "react-redux";
-import { 
-  FaSearch, FaShoppingCart, FaPlus, FaFilter, 
-  FaUserCircle, FaSignOutAlt, FaHeart, FaHistory,
-  FaTag, FaCog
-} from "react-icons/fa";
-import { useNavigate } from "react-router-dom";
-import { filterByPrice, searchByName } from "../Service/Actions/productActions";
+import { useNavigate, useLocation } from "react-router-dom";
 import { signOut } from "firebase/auth";
 import { auth } from "../firebase";
 import { logoutAsync } from "../Service/Actions/authActions";
+import { filterByPrice, searchByName, filterByCategory } from "../Service/Actions/productActions";
 import { toast } from "react-toastify";
-import { motion, AnimatePresence } from "framer-motion";
+import { useTheme } from "../Context/ThemeContext";
+import {
+  FiSearch, FiShoppingBag, FiPlus, FiUser, FiSun, FiMoon,
+  FiHeart, FiPackage, FiTag, FiLogOut, FiChevronDown
+} from "react-icons/fi";
+
+const CATEGORIES = ["All", "Mobiles", "Electronics", "Audio", "Wearables", "Camera", "Accessories", "Toys", "Decorations"];
 
 const Navbar = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const dispatch = useDispatch();
-  const cart = useSelector((state) => state.cart);
-  const user = useSelector((state) => state.auth.user);
-  const [searchFocused, setSearchFocused] = useState(false);
+  const cart = useSelector((s) => s.cart);
+  const user = useSelector((s) => s.auth.user);
+  const productCategory = useSelector((s) => s.products?.category || "");
+  const { theme, toggle } = useTheme();
+  const [activeChip, setActiveChip] = useState("All");
 
-  const handlePriceChange = (e) => {
-    const value = e.target.value;
-    if (value === "") {
-      dispatch(filterByPrice([]));
-    } else {
-      const range = value.split("-").map(Number);
-      dispatch(filterByPrice(range));
-    }
+  const handleSearch = (e) => dispatch(searchByName(e.target.value));
+  const handlePrice = (e) => {
+    const v = e.target.value;
+    if (!v) return dispatch(filterByPrice([]));
+    const [a, b] = v.split("-").map(Number);
+    dispatch(filterByPrice([a, b || 999999]));
   };
-
+  const handleCategory = (cat) => {
+    setActiveChip(cat);
+    dispatch(filterByCategory(cat === "All" ? "" : cat));
+  };
   const handleCart = () => {
     if (!user) {
-      toast.warning("Please sign in to view your cart");
-      setTimeout(() => navigate("/signin"), 2000);
-    } else {
-      navigate("/cart");
+      toast.info("Please sign in to view your cart");
+      setTimeout(() => navigate("/signin"), 800);
+      return;
     }
+    navigate("/cart");
   };
-
-  const handleSearch = (e) => {
-    dispatch(searchByName(e.target.value));
-  };
-
-  const handleAddProduct = () => {
+  const handleAdd = () => {
     if (!user) {
-      toast.warning("Please sign in to add products");
+      toast.info("Please sign in to list a product");
       return navigate("/signin");
     }
     navigate("/add-product");
   };
-
   const handleLogout = async () => {
     try {
       await signOut(auth);
       dispatch(logoutAsync());
-      toast.success("Signed out successfully");
+      toast.success("Signed out");
       navigate("/signin");
     } catch {
-      toast.error("Failed to sign out");
+      toast.error("Could not sign out");
     }
   };
 
   return (
-    <motion.nav
-      initial={{ y: -100 }}
-      animate={{ y: 0 }}
-      transition={{ type: "spring", stiffness: 50 }}
-      className="minimal-navbar"
-    >
-      <div className="container-fluid px-4">
-        <div className="d-flex align-items-center justify-content-between flex-wrap">
-          {/* Brand */}
-          <motion.div
-            whileHover={{ scale: 1.05 }}
-            className="minimal-navbar-brand cursor-pointer"
-            onClick={() => navigate("/")}
-          >
-            FlipZone
-          </motion.div>
-
-          {/* Search Bar */}
-          <div className="position-relative mx-4 flex-grow-1" style={{ maxWidth: "600px" }}>
-            <motion.div
-              animate={searchFocused ? { scale: 1.02 } : { scale: 1 }}
-              className="position-relative"
-            >
-              <input
-                type="text"
-                className="minimal-search-input w-100"
-                placeholder="Search for products, brands and more..."
-                onChange={handleSearch}
-                onFocus={() => setSearchFocused(true)}
-                onBlur={() => setSearchFocused(false)}
-              />
-              <FaSearch className="position-absolute top-50 start-0 translate-middle-y ms-3 text-muted" />
-            </motion.div>
+    <>
+      {user && (
+        <div className="fz-greet" data-testid="user-greeting">
+          Welcome back, <b>{user.email?.split("@")[0]}</b>
+        </div>
+      )}
+      <nav className="fz-nav" data-testid="navbar">
+        <div className="fz-container fz-nav-row">
+          <div className="fz-brand" onClick={() => navigate("/")} data-testid="brand-logo" style={{ cursor: "pointer" }}>
+            FlipZone <span className="fz-brand-dot" />
           </div>
 
-          {/* Action Buttons */}
-          <div className="d-flex align-items-center gap-3">
-            {/* Add Product */}
-            <motion.button
-              whileHover={{ scale: 1.05, rotate: 90 }}
-              whileTap={{ scale: 0.95 }}
-              className="minimal-btn"
-              onClick={handleAddProduct}
-              title="Add Product"
+          <div className="fz-search">
+            <FiSearch className="fz-search-icon" size={16} />
+            <input
+              type="text"
+              placeholder="Search products, brands, categories…"
+              onChange={handleSearch}
+              data-testid="search-input"
+            />
+          </div>
+
+          <div className="fz-nav-actions">
+            <select
+              className="form-select fz-filter-select d-none d-md-inline-block"
+              onChange={handlePrice}
+              defaultValue=""
+              data-testid="price-filter"
             >
-              <FaPlus />
-            </motion.button>
+              <option value="">All Prices</option>
+              <option value="0-1000">Under ₹1,000</option>
+              <option value="1000-5000">₹1k – ₹5k</option>
+              <option value="5000-20000">₹5k – ₹20k</option>
+              <option value="20000-50000">₹20k – ₹50k</option>
+              <option value="50000-9999999">Above ₹50k</option>
+            </select>
 
-            {/* Filter */}
-            <div className="d-flex align-items-center">
-              <FaFilter className="me-2 text-muted" />
-              <motion.select
-                whileHover={{ scale: 1.02 }}
-                className="minimal-select"
-                onChange={handlePriceChange}
-              >
-                <option value="">All Prices</option>
-                <option value="0-500">Under ₹500</option>
-                <option value="500-1000">₹500 - ₹1000</option>
-                <option value="1000-1500">₹1000 - ₹1500</option>
-                <option value="1500-2000">₹1500 - ₹2000</option>
-                <option value="2000+">Above ₹2000</option>
-              </motion.select>
-            </div>
-
-            {/* Cart */}
-            <motion.div
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              className="minimal-cart position-relative"
-              onClick={handleCart}
+            <button
+              className="fz-icon-btn"
+              onClick={toggle}
+              title="Toggle theme"
+              data-testid="theme-toggle"
             >
-              <FaShoppingCart />
-              <span className="d-none d-lg-inline">Cart</span>
-              <AnimatePresence>
-                {cart.length > 0 && (
-                  <motion.span
-                    initial={{ scale: 0 }}
-                    animate={{ scale: 1 }}
-                    exit={{ scale: 0 }}
-                    className="position-absolute top-0 start-100 translate-middle badge rounded-pill"
-                    style={{ background: 'var(--danger-gradient)' }}
-                  >
-                    {cart.length}
-                  </motion.span>
-                )}
-              </AnimatePresence>
-            </motion.div>
+              {theme === "light" ? <FiMoon size={18} /> : <FiSun size={18} />}
+            </button>
 
-            {/* User Menu */}
-            <div className="dropdown">
-              {user ? (
-                <>
-                  <motion.button
-                    whileHover={{ scale: 1.05 }}
-                    className="minimal-btn dropdown-toggle d-flex align-items-center"
-                    data-bs-toggle="dropdown"
-                  >
-                    <FaUserCircle className="me-1" />
-                    <span className="d-none d-lg-inline">{user.email?.split("@")[0]}</span>
-                  </motion.button>
-                  <ul className="dropdown-menu dropdown-menu-end animate-slideDown">
-                    <li>
-                      <button className="dropdown-item" onClick={() => navigate("/profile")}>
-                        <FaUserCircle className="me-2" /> Profile
-                      </button>
-                    </li>
-                    <li>
-                      <button className="dropdown-item" onClick={() => navigate("/orders")}>
-                        <FaHistory className="me-2" /> Orders
-                      </button>
-                    </li>
-                    <li>
-                      <button className="dropdown-item" onClick={() => navigate("/wishlist")}>
-                        <FaHeart className="me-2" /> Wishlist
-                      </button>
-                    </li>
-                    <li>
-                      <button className="dropdown-item" onClick={() => navigate("/coupons")}>
-                        <FaTag className="me-2" /> Coupons
-                      </button>
-                    </li>
-                    <li><hr className="dropdown-divider" /></li>
-                    <li>
-                      <button className="dropdown-item text-danger" onClick={handleLogout}>
-                        <FaSignOutAlt className="me-2" /> Sign Out
-                      </button>
-                    </li>
-                  </ul>
-                </>
-              ) : (
-                <motion.button
-                  whileHover={{ scale: 1.05 }}
-                  className="btn-gradient"
-                  onClick={() => navigate("/signin")}
+            <button className="fz-icon-btn d-none d-md-inline-flex" onClick={handleAdd} title="Add Product" data-testid="add-product-nav">
+              <FiPlus size={18} />
+            </button>
+
+            <button className="fz-icon-btn" onClick={handleCart} title="Cart" data-testid="cart-button">
+              <FiShoppingBag size={18} />
+              {cart.length > 0 && <span className="fz-cart-badge">{cart.length}</span>}
+            </button>
+
+            {user ? (
+              <div className="dropdown">
+                <button
+                  className="fz-icon-btn"
+                  data-bs-toggle="dropdown"
+                  data-testid="user-menu-trigger"
                 >
-                  Sign In
-                </motion.button>
-              )}
+                  <FiUser size={18} />
+                </button>
+                <ul className="dropdown-menu dropdown-menu-end">
+                  <li><button className="dropdown-item d-flex align-items-center gap-2" onClick={() => navigate("/profile")} data-testid="menu-profile"><FiUser /> Profile</button></li>
+                  <li><button className="dropdown-item d-flex align-items-center gap-2" onClick={() => navigate("/orders")} data-testid="menu-orders"><FiPackage /> Orders</button></li>
+                  <li><button className="dropdown-item d-flex align-items-center gap-2" onClick={() => navigate("/coupons")} data-testid="menu-coupons"><FiTag /> Coupons</button></li>
+                  <li><hr className="dropdown-divider" /></li>
+                  <li><button className="dropdown-item d-flex align-items-center gap-2" style={{ color: "var(--danger)" }} onClick={handleLogout} data-testid="menu-logout"><FiLogOut /> Sign Out</button></li>
+                </ul>
+              </div>
+            ) : (
+              <button className="fz-signin-btn" onClick={() => navigate("/signin")} data-testid="signin-button">
+                Sign In
+              </button>
+            )}
+          </div>
+        </div>
+      </nav>
+
+      {location.pathname === "/" && (
+        <div className="fz-categories" data-testid="categories-strip">
+          <div className="fz-container">
+            <div className="fz-categories-row">
+              {CATEGORIES.map((cat) => (
+                <button
+                  key={cat}
+                  className="fz-chip"
+                  data-active={activeChip === cat}
+                  onClick={() => handleCategory(cat)}
+                  data-testid={`chip-${cat.toLowerCase()}`}
+                >
+                  {cat}
+                </button>
+              ))}
             </div>
           </div>
         </div>
-      </div>
-    </motion.nav>
+      )}
+    </>
   );
 };
 

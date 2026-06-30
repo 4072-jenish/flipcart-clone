@@ -3,39 +3,23 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import axios from "axios";
 import { doc, getDoc } from "firebase/firestore";
+import { motion } from "framer-motion";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { FiUploadCloud, FiSave, FiX } from "react-icons/fi";
 import { db } from "../firebase";
 import { editProductAsync } from "../Service/Actions/productActions";
-import { toast, ToastContainer } from 'react-toastify';
-import { motion } from "framer-motion";
-import {
-  FaBoxOpen,
-  FaRupeeSign,
-  FaStar,
-  FaTags,
-  FaImage,
-  FaAlignLeft,
-  FaEdit,
-  FaCloudUploadAlt,
-  FaSave,
-  FaTimes
-} from "react-icons/fa";
+
+const CATEGORIES = ["Electronics", "Mobiles", "Audio", "Wearables", "Camera", "Accessories", "Toys", "Decorations", "Fashion", "Books"];
 
 const EditProduct = () => {
   const { id } = useParams();
-  const navigate = useNavigate();
   const dispatch = useDispatch();
-
-  const [form, setForm] = useState({
-    name: "",
-    price: "",
-    category: "",
-    image: "",
-    description: "",
-    rating: ""
-  });
-  const [uploading, setUploading] = useState(false);
+  const navigate = useNavigate();
+  const [form, setForm] = useState({ name: "", price: "", category: "", image: "", description: "", rating: "" });
   const [loading, setLoading] = useState(true);
-  const [uploadProgress, setUploadProgress] = useState(0);
+  const [uploading, setUploading] = useState(false);
+  const [progress, setProgress] = useState(0);
 
   useEffect(() => {
     const fetchProduct = async () => {
@@ -43,14 +27,22 @@ const EditProduct = () => {
         const productRef = doc(db, "products", id);
         const productSnap = await getDoc(productRef);
         if (productSnap.exists()) {
-          setForm(productSnap.data());
+          const data = productSnap.data();
+          setForm({
+            name: data.name || "",
+            price: data.price || "",
+            category: data.category || "",
+            image: data.image || "",
+            description: data.description || "",
+            rating: typeof data.rating === "object" ? data.rating?.rate : data.rating || "",
+          });
         } else {
           toast.error("Product not found");
-          setTimeout(() => navigate("/"), 2000);
+          setTimeout(() => navigate("/"), 1200);
         }
-      } catch (err) {
+      } catch {
         toast.error("Failed to load product");
-        setTimeout(() => navigate("/"), 2000);
+        setTimeout(() => navigate("/"), 1200);
       } finally {
         setLoading(false);
       }
@@ -58,252 +50,123 @@ const EditProduct = () => {
     fetchProduct();
   }, [id, navigate]);
 
-  const handleChange = (e) => {
-    setForm({ ...form, [e.target.name]: e.target.value });
-  };
+  const onChange = (e) => setForm({ ...form, [e.target.name]: e.target.value });
 
-  const handleImageUpload = async (e) => {
+  const onUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
     setUploading(true);
-    setUploadProgress(0);
-
-    const data = new FormData();
-    data.append("file", file);
-    data.append("upload_preset", "flip-images");
-
+    setProgress(0);
+    const fd = new FormData();
+    fd.append("file", file);
+    fd.append("upload_preset", "flip-images");
     try {
-      const res = await axios.post("https://api.cloudinary.com/v1_1/dd8rb9luw/image/upload", data, {
-        onUploadProgress: (progressEvent) => {
-          const progress = Math.round((progressEvent.loaded * 100) / progressEvent.total);
-          setUploadProgress(progress);
-        }
+      const res = await axios.post("https://api.cloudinary.com/v1_1/dd8rb9luw/image/upload", fd, {
+        onUploadProgress: (e) => setProgress(Math.round((e.loaded * 100) / e.total)),
       });
-      setForm({ ...form, image: res.data.secure_url });
-      toast.success("Image updated successfully!");
-    } catch (err) {
-      toast.error("Failed to upload image");
+      setForm((f) => ({ ...f, image: res.data.secure_url }));
+      toast.success("Image updated");
+    } catch {
+      toast.error("Upload failed");
     } finally {
       setUploading(false);
-      setUploadProgress(0);
+      setProgress(0);
     }
   };
 
-  const handleSubmit = async (e) => {
+  const onSubmit = async (e) => {
     e.preventDefault();
     try {
-      await dispatch(editProductAsync(id, form));
-      toast.success("✨ Product updated successfully!");
-      setTimeout(() => navigate("/"), 2000);
-    } catch (error) {
-      toast.error("Failed to update product");
+      await dispatch(editProductAsync(id, {
+        ...form,
+        price: parseFloat(form.price),
+        rating: { rate: parseFloat(form.rating), count: 1 },
+      }));
+      toast.success("Product updated");
+      setTimeout(() => navigate("/"), 1000);
+    } catch {
+      toast.error("Could not update");
     }
   };
 
   if (loading) {
     return (
-      <div className="loading-spinner">
-        <div className="spinner"></div>
+      <div className="fz-spinner-wrap" data-testid="edit-loading">
+        <div className="fz-spinner" />
       </div>
     );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.5 }}
-      className="container py-5"
-    >
-      <ToastContainer position="top-right" autoClose={3000} theme="light" />
-      
-      <div className="form-modern mx-auto" style={{ maxWidth: "800px" }}>
-        <motion.div
-          initial={{ scale: 0.9 }}
-          animate={{ scale: 1 }}
-          transition={{ delay: 0.2 }}
-          className="text-center mb-5"
-        >
-          <div className="profile-avatar mx-auto mb-3">
-            <FaEdit />
+    <section className="fz-container fz-page" data-testid="edit-product-page">
+      <ToastContainer position="bottom-right" autoClose={2200} />
+      <motion.div className="fz-form" initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}>
+        <div className="fz-form-head">
+          <span className="section-eyebrow">Update listing</span>
+          <h1 style={{ marginTop: 14 }}>Edit Product</h1>
+          <p>Refine details, swap images, and keep your listing fresh.</p>
+        </div>
+
+        <form onSubmit={onSubmit}>
+          <div className="form-group">
+            <label className="form-label">Product Name</label>
+            <input required type="text" name="name" className="form-control" value={form.name} onChange={onChange} data-testid="ep-name" />
           </div>
-          <h2 className="display-6 fw-bold" style={{
-            background: "linear-gradient(135deg, #00b4db, #0083b0)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent"
-          }}>
-            Edit Product
-          </h2>
-          <p className="text-muted">Update your product details</p>
-        </motion.div>
-
-        <form onSubmit={handleSubmit}>
-          <div className="row g-4">
-            <div className="col-12">
-              <label className="form-label">
-                <FaBoxOpen className="form-icon" /> Product Name
-              </label>
-              <input
-                required
-                type="text"
-                name="name"
-                className="form-control"
-                value={form.name}
-                onChange={handleChange}
-              />
+          <div className="fz-form-row">
+            <div className="form-group">
+              <label className="form-label">Price (₹)</label>
+              <input required type="number" name="price" className="form-control" value={form.price} onChange={onChange} data-testid="ep-price" />
             </div>
-
-            <div className="col-md-6">
-              <label className="form-label">
-                <FaRupeeSign className="form-icon" /> Price
-              </label>
-              <input
-                required
-                type="number"
-                name="price"
-                className="form-control"
-                value={form.price}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label">
-                <FaTags className="form-icon" /> Category
-              </label>
-              <select
-                required
-                name="category"
-                className="form-select"
-                value={form.category}
-                onChange={handleChange}
-              >
-                <option value="">Select category</option>
-                <option value="Electronics">📱 Electronics</option>
-                <option value="Fashion">👗 Fashion</option>
-                <option value="Books">📚 Books</option>
-                <option value="Mobiles">📞 Mobiles</option>
-                <option value="Camera">📷 Camera</option>
-                <option value="Accessories">🎧 Accessories</option>
-                <option value="Toys">🧸 Toys</option>
-                <option value="Audio">🔊 Audio</option>
+            <div className="form-group">
+              <label className="form-label">Category</label>
+              <select required name="category" className="form-select" value={form.category} onChange={onChange} data-testid="ep-category">
+                <option value="">Select</option>
+                {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
               </select>
             </div>
+          </div>
 
-            <div className="col-12">
-              <label className="form-label">
-                <FaImage className="form-icon" /> Product Image
-              </label>
-              <div className="upload-area" style={{
-                border: '2px dashed var(--border-light)',
-                borderRadius: '20px',
-                padding: '2rem',
-                textAlign: 'center',
-                background: 'var(--bg-light)',
-                cursor: 'pointer',
-                transition: 'all 0.3s ease'
-              }}>
-                <input
-                  type="file"
-                  accept="image/*"
-                  onChange={handleImageUpload}
-                  style={{ display: 'none' }}
-                  id="image-upload"
-                />
-                <label htmlFor="image-upload" style={{ cursor: 'pointer' }}>
-                  <FaCloudUploadAlt size={40} color="#00b4db" />
-                  <p className="mt-2 mb-0">Click to upload new image</p>
-                  <small className="text-muted">PNG, JPG, GIF up to 10MB</small>
-                </label>
-              </div>
+          <div className="form-group">
+            <label className="form-label">Product Image</label>
+            <label className="fz-upload" htmlFor="ep-image-upload">
+              <FiUploadCloud size={32} />
+              <p>Click to replace image</p>
+              <small>PNG, JPG, WEBP — up to 10MB</small>
+              <input id="ep-image-upload" type="file" accept="image/*" onChange={onUpload} style={{ display: 'none' }} />
+            </label>
+            {uploading && (
+              <>
+                <div className="fz-progress"><div className="fz-progress-bar" style={{ width: `${progress}%` }} /></div>
+              </>
+            )}
+            {form.image && (
+              <div className="fz-img-preview"><img src={form.image} alt="preview" /></div>
+            )}
+          </div>
 
-              {uploading && (
-                <div className="mt-3">
-                  <div className="d-flex align-items-center gap-3">
-                    <div className="progress flex-grow-1" style={{ height: '8px' }}>
-                      <div
-                        className="progress-bar"
-                        role="progressbar"
-                        style={{
-                          width: `${uploadProgress}%`,
-                          background: 'linear-gradient(135deg, #00b4db, #0083b0)'
-                        }}
-                      />
-                    </div>
-                    <span>{uploadProgress}%</span>
-                  </div>
-                </div>
-              )}
+          <div className="form-group">
+            <label className="form-label">Description</label>
+            <textarea name="description" className="form-control" rows="4" value={form.description} onChange={onChange} data-testid="ep-desc" />
+          </div>
 
-              {form.image && (
-                <motion.div
-                  initial={{ opacity: 0, scale: 0.9 }}
-                  animate={{ opacity: 1, scale: 1 }}
-                  className="image-preview"
-                >
-                  <img src={form.image} alt="Preview" />
-                </motion.div>
-              )}
-            </div>
-
-            <div className="col-12">
-              <label className="form-label">
-                <FaAlignLeft className="form-icon" /> Description
-              </label>
-              <textarea
-                name="description"
-                className="form-control"
-                rows="4"
-                value={form.description}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="col-md-6">
-              <label className="form-label">
-                <FaStar className="form-icon" /> Rating
-              </label>
-              <input
-                required
-                type="number"
-                name="rating"
-                min="0"
-                max="5"
-                step="0.1"
-                className="form-control"
-                value={form.rating}
-                onChange={handleChange}
-              />
-            </div>
-
-            <div className="col-12 text-center mt-5">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="submit"
-                className="btn-gradient px-5 py-3"
-                disabled={uploading}
-                style={{ fontSize: '1.1rem' }}
-              >
-                <FaSave className="me-2" />
-                Update Product
-              </motion.button>
-              
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                type="button"
-                className="btn-outline-gradient ms-3 px-5 py-3"
-                onClick={() => navigate("/")}
-              >
-                <FaTimes className="me-2" />
-                Cancel
-              </motion.button>
+          <div className="fz-form-row">
+            <div className="form-group">
+              <label className="form-label">Rating (0–5)</label>
+              <input required type="number" name="rating" min="0" max="5" step="0.1" className="form-control" value={form.rating} onChange={onChange} data-testid="ep-rating" />
             </div>
           </div>
+
+          <div className="fz-form-actions">
+            <button type="button" className="fz-btn fz-btn-ghost" onClick={() => navigate("/")} data-testid="ep-cancel">
+              <FiX size={14} /> Cancel
+            </button>
+            <button type="submit" className="fz-btn" disabled={uploading} data-testid="ep-submit">
+              <FiSave size={14} /> Update
+            </button>
+          </div>
         </form>
-      </div>
-    </motion.div>
+      </motion.div>
+    </section>
   );
 };
 

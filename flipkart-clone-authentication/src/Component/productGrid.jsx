@@ -1,88 +1,67 @@
 import React, { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 import ProductCard from "./ProductCard";
 import { fetchProductsAsync } from "../Service/Actions/productActions";
-import { motion, AnimatePresence } from "framer-motion";
-import { FaBoxOpen } from "react-icons/fa";
+import { FiPackage } from "react-icons/fi";
 
 const ProductGrid = () => {
   const dispatch = useDispatch();
-  const filteredProducts = useSelector((state) => state.products.filtered);
+  const filtered = useSelector((s) => s.products.filtered);
+  const all = useSelector((s) => s.products.all);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const loadProducts = async () => {
+    const load = async () => {
       setLoading(true);
       await dispatch(fetchProductsAsync());
       setLoading(false);
     };
-    loadProducts();
+    load();
   }, [dispatch]);
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
 
   if (loading) {
     return (
-      <div className="loading-spinner">
-        <div className="spinner"></div>
+      <div className="fz-spinner-wrap" data-testid="grid-loading">
+        <div className="fz-spinner" />
       </div>
     );
   }
 
   return (
-    <div className="container py-5">
-      <motion.div
-        initial={{ opacity: 0, y: -20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="text-center mb-5"
-      >
-        <h2 className="display-6 fw-bold" style={{ 
-          background: "linear-gradient(135deg, #00b4db, #0083b0)",
-          WebkitBackgroundClip: "text",
-          WebkitTextFillColor: "transparent"
-        }}>
-          Our Premium Collection
-        </h2>
-        <p className="text-muted">Discover amazing products tailored just for you</p>
-      </motion.div>
+    <section className="fz-container" data-testid="product-grid">
+      <ToastContainer position="bottom-right" autoClose={2200} hideProgressBar={false} closeOnClick newestOnTop />
 
-      <AnimatePresence>
-        {filteredProducts.length === 0 ? (
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="empty-state"
-          >
-            <FaBoxOpen className="empty-state-icon" />
-            <h3 className="empty-state-title">No Products Found</h3>
-            <p className="empty-state-text">Check back later for new arrivals!</p>
-          </motion.div>
-        ) : (
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="row g-4"
-          >
-            {filteredProducts.map((product, index) => (
-              <ProductCard 
-                key={product.id} 
-                product={product} 
-                index={index}
-              />
-            ))}
-          </motion.div>
-        )}
-      </AnimatePresence>
-    </div>
+      <div className="fz-grid-header">
+        <div>
+          <span className="section-eyebrow">The Edit</span>
+          <h2 style={{ marginTop: 14 }}>
+            Considered <em>commerce.</em>
+          </h2>
+          <p>Hand-picked products from craftspeople and makers we trust. Browse, save, and shop with intent.</p>
+        </div>
+        <div className="fz-result-count" data-testid="result-count">
+          Showing {filtered.length} / {all.length} items
+        </div>
+      </div>
+
+      {filtered.length === 0 ? (
+        <div className="fz-empty" data-testid="empty-products">
+          <span className="fz-empty-icon">
+            <FiPackage />
+          </span>
+          <h3>No matches found</h3>
+          <p>Try a different category or clear your filters to see all products.</p>
+        </div>
+      ) : (
+        <div className="fz-grid">
+          {filtered.map((product, i) => (
+            <ProductCard key={product.id} product={product} index={i} />
+          ))}
+        </div>
+      )}
+    </section>
   );
 };
 

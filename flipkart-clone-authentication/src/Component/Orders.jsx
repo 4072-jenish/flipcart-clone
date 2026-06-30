@@ -1,142 +1,83 @@
 import React from "react";
 import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { FaHistory, FaBox, FaRupeeSign, FaCalendar } from "react-icons/fa";
-import { MdLocalShipping } from "react-icons/md";
+import { FiPackage, FiTruck } from "react-icons/fi";
 
 const Orders = () => {
-  const orders = useSelector((state) => state.orders);
-
-  const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-      opacity: 1,
-      transition: {
-        staggerChildren: 0.1
-      }
-    }
-  };
-
-  const orderVariants = {
-    hidden: { x: -20, opacity: 0 },
-    visible: {
-      x: 0,
-      opacity: 1,
-      transition: { type: "spring", stiffness: 100 }
-    }
-  };
+  const orders = useSelector((s) => s.orders) || [];
+  const navigate = useNavigate();
 
   if (orders.length === 0) {
     return (
-      <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        className="container py-5"
-      >
-        <div className="empty-state">
-          <FaHistory className="empty-state-icon" />
-          <h3 className="empty-state-title">No Orders Yet</h3>
-          <p className="empty-state-text">Looks like you haven't placed any orders</p>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="btn-gradient mt-4 px-5 py-3"
-            onClick={() => window.location.href = "/"}
-          >
-            Start Shopping
-          </motion.button>
+      <section className="fz-container fz-page">
+        <div className="fz-empty" data-testid="orders-empty">
+          <span className="fz-empty-icon"><FiPackage /></span>
+          <h3>No orders yet</h3>
+          <p>When you place an order, it'll show up here.</p>
+          <button className="fz-btn" onClick={() => navigate("/")} data-testid="orders-shop-cta">
+            Browse Products
+          </button>
         </div>
-      </motion.div>
+      </section>
     );
   }
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="container py-5"
-    >
-      <div className="cart-header mb-5">
-        <h2 className="fw-bold mb-0">
-          <FaHistory className="me-3" style={{ color: 'var(--primary-color)' }} />
-          Order History
-        </h2>
-        <p className="text-muted mb-0">You have placed {orders.length} {orders.length === 1 ? 'order' : 'orders'}</p>
+    <section className="fz-container fz-page" data-testid="orders-page">
+      <div className="fz-page-h">
+        <div>
+          <span className="section-eyebrow">{orders.length} order{orders.length > 1 ? "s" : ""}</span>
+          <h1 style={{ marginTop: 12 }}>Order History</h1>
+          <p>Everything you've ever bought, in one place.</p>
+        </div>
       </div>
 
-      <motion.div
-        variants={containerVariants}
-        initial="hidden"
-        animate="visible"
-        className="row g-4"
-      >
-        <AnimatePresence>
-          {orders.slice().reverse().map((order, index) => (
+      <AnimatePresence>
+        {orders.slice().reverse().map((order, index) => {
+          const orderTotal = order.items.reduce((s, i) => s + Number(i.price) * (i.quantity || 1), 0);
+          return (
             <motion.div
-              key={order.id || index}
-              variants={orderVariants}
-              exit={{ opacity: 0, x: -20 }}
-              className="col-12"
+              key={order.id}
+              className="fz-order-card"
+              initial={{ opacity: 0, y: 16 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              data-testid={`order-${order.id}`}
             >
-              <div className="order-card">
-                <div className="order-header">
-                  <div className="d-flex align-items-center gap-4">
-                    <span className="fw-bold">Order #{orders.length - index}</span>
-                    <span className="text-muted">
-                      <FaCalendar className="me-2" />
-                      {new Date(order.id).toLocaleDateString('en-US', {
-                        year: 'numeric',
-                        month: 'long',
-                        day: 'numeric',
-                        hour: '2-digit',
-                        minute: '2-digit'
-                      })}
-                    </span>
-                  </div>
-                  <span className="badge" style={{ background: 'var(--success-gradient)' }}>
-                    <MdLocalShipping className="me-1" />
-                    Delivered
-                  </span>
+              <div className="fz-order-head">
+                <div style={{ display: 'flex', alignItems: 'center', gap: 16, flexWrap: 'wrap' }}>
+                  <span className="fz-order-id">Order #{orders.length - index}</span>
+                  <span className="fz-order-date">{new Date(order.id).toLocaleString("en-IN", { dateStyle: "medium", timeStyle: "short" })}</span>
                 </div>
+                <span className="fz-status"><FiTruck style={{ marginRight: 4 }} size={11} /> Delivered</span>
+              </div>
 
-                {order.items.map((item) => (
-                  <div key={item.id} className="order-item">
-                    <img
-                      src={item.image}
-                      alt={item.name}
-                      className="order-item-image"
-                    />
-                    <div className="flex-grow-1">
-                      <div className="d-flex justify-content-between align-items-start">
-                        <div>
-                          <h6 className="fw-semibold mb-1">{item.name}</h6>
-                          <span className="badge bg-light text-dark">{item.category}</span>
-                        </div>
-                        <div className="text-end">
-                          <span className="fw-bold" style={{ color: 'var(--primary-color)' }}>
-                            ₹{item.price * (item.quantity || 1)}
-                          </span>
-                          <div className="text-muted small">
-                            ₹{item.price} × {item.quantity || 1}
-                          </div>
-                        </div>
-                      </div>
+              {order.items.map((item) => (
+                <div className="fz-order-line" key={item.id}>
+                  <img src={item.image} alt={item.name} onError={(e) => (e.currentTarget.src = "https://placehold.co/120/EDE7DD/0F0F0F?text=No+Image")} />
+                  <div style={{ flex: 1 }}>
+                    <h6>{item.name}</h6>
+                    <span style={{ fontSize: 11, color: "var(--ink-3)", fontFamily: 'var(--font-mono)', letterSpacing: '0.06em', textTransform: 'uppercase' }}>{item.category}</span>
+                  </div>
+                  <div style={{ textAlign: 'right' }}>
+                    <div style={{ fontFamily: 'var(--font-display)', fontWeight: 600, fontSize: 16 }}>
+                      ₹{(Number(item.price) * (item.quantity || 1)).toLocaleString("en-IN")}
                     </div>
+                    <small style={{ color: "var(--ink-3)", fontFamily: 'var(--font-mono)', fontSize: 11 }}>₹{Number(item.price).toLocaleString("en-IN")} × {item.quantity || 1}</small>
                   </div>
-                ))}
-
-                <div className="mt-3 pt-3 border-top d-flex justify-content-between align-items-center">
-                  <span className="text-muted">Total Items: {order.items.length}</span>
-                  <span className="h5 fw-bold mb-0">
-                    Total: <span style={{ color: 'var(--primary-color)' }}>₹{order.items.reduce((sum, item) => sum + item.price * (item.quantity || 1), 0)}</span>
-                  </span>
                 </div>
+              ))}
+
+              <div className="fz-order-foot">
+                <span>{order.items.length} item{order.items.length > 1 ? "s" : ""}</span>
+                <strong>₹{orderTotal.toLocaleString("en-IN")}</strong>
               </div>
             </motion.div>
-          ))}
-        </AnimatePresence>
-      </motion.div>
-    </motion.div>
+          );
+        })}
+      </AnimatePresence>
+    </section>
   );
 };
 

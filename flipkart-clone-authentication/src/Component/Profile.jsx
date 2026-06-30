@@ -1,160 +1,107 @@
 import React from "react";
 import { useSelector } from "react-redux";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { FaUserCircle, FaEnvelope, FaIdCard, FaCalendar, FaShoppingBag, FaHeart, FaTag } from "react-icons/fa";
+import { FiPackage, FiHeart, FiTag, FiMail, FiCalendar, FiHash } from "react-icons/fi";
 
 const Profile = () => {
-  const user = useSelector((state) => state.auth.user);
+  const user = useSelector((s) => s.auth.user);
+  const orders = useSelector((s) => s.orders) || [];
+  const navigate = useNavigate();
 
   if (!user) {
     return (
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="container py-5"
-      >
-        <div className="empty-state">
-          <FaUserCircle className="empty-state-icon" />
-          <h3 className="empty-state-title">Please Sign In</h3>
-          <p className="empty-state-text">You need to be logged in to view your profile</p>
-          <motion.button
-            whileHover={{ scale: 1.05 }}
-            whileTap={{ scale: 0.95 }}
-            className="btn-gradient mt-4 px-5 py-3"
-            onClick={() => window.location.href = "/signin"}
-          >
-            Go to Sign In
-          </motion.button>
+      <section className="fz-container fz-page">
+        <div className="fz-empty" data-testid="profile-locked">
+          <span className="fz-empty-icon"><FiPackage /></span>
+          <h3>Sign in to view your profile</h3>
+          <p>Access your orders, wishlist and account details once you're in.</p>
+          <button className="fz-btn" onClick={() => navigate("/signin")} data-testid="profile-signin-cta">
+            Sign In
+          </button>
         </div>
-      </motion.div>
+      </section>
     );
   }
 
+  const initial = (user.email || "U").charAt(0).toUpperCase();
   const stats = [
-    { icon: <FaShoppingBag />, label: "Orders", value: "12" },
-    { icon: <FaHeart />, label: "Wishlist", value: "8" },
-    { icon: <FaTag />, label: "Coupons", value: "3" }
+    { label: "Orders", value: orders.length },
+    { label: "Wishlist", value: 0 },
+    { label: "Coupons", value: 4 },
   ];
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      className="container py-5"
-    >
-      <div className="row g-4">
-        <div className="col-lg-4">
-          <motion.div
-            initial={{ x: -20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.1 }}
-            className="profile-card"
-          >
-            <div className="profile-avatar">
-              <FaUserCircle />
-            </div>
-            
-            <h3 className="fw-bold mt-3">{user.email?.split("@")[0]}</h3>
-            <p className="text-muted">Member since 2024</p>
-            
-            <div className="d-flex justify-content-center gap-3 mt-4">
-              {stats.map((stat, index) => (
-                <motion.div
-                  key={index}
-                  whileHover={{ y: -3 }}
-                  className="text-center"
-                >
-                  <div className="fs-4" style={{ color: 'var(--primary-color)' }}>
-                    {stat.icon}
-                  </div>
-                  <div className="fw-bold">{stat.value}</div>
-                  <small className="text-muted">{stat.label}</small>
-                </motion.div>
-              ))}
-            </div>
-          </motion.div>
-        </div>
-
-        <div className="col-lg-8">
-          <motion.div
-            initial={{ x: 20, opacity: 0 }}
-            animate={{ x: 0, opacity: 1 }}
-            transition={{ delay: 0.2 }}
-            className="form-modern"
-          >
-            <h4 className="fw-bold mb-4">Profile Information</h4>
-            
-            <div className="mb-4">
-              <label className="form-label">
-                <FaEnvelope className="me-2" style={{ color: 'var(--primary-color)' }} />
-                Email Address
-              </label>
-              <input
-                type="email"
-                className="form-control"
-                value={user.email}
-                readOnly
-                disabled
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label className="form-label">
-                <FaIdCard className="me-2" style={{ color: 'var(--primary-color)' }} />
-                User ID
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                value={user.uid}
-                readOnly
-                disabled
-              />
-            </div>
-            
-            <div className="mb-4">
-              <label className="form-label">
-                <FaCalendar className="me-2" style={{ color: 'var(--primary-color)' }} />
-                Account Created
-              </label>
-              <input
-                type="text"
-                className="form-control"
-                value={new Date(user.metadata?.createdAt || Date.now()).toLocaleDateString('en-US', {
-                  year: 'numeric',
-                  month: 'long',
-                  day: 'numeric'
-                })}
-                readOnly
-                disabled
-              />
-            </div>
-
-            <hr className="my-4" />
-
-            <div className="d-flex gap-3">
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="btn-outline-gradient flex-grow-1"
-                onClick={() => window.location.href = "/orders"}
-              >
-                View Orders
-              </motion.button>
-              
-              <motion.button
-                whileHover={{ scale: 1.02 }}
-                whileTap={{ scale: 0.98 }}
-                className="btn-outline-gradient flex-grow-1"
-                onClick={() => window.location.href = "/wishlist"}
-              >
-                Wishlist
-              </motion.button>
-            </div>
-          </motion.div>
+    <section className="fz-container fz-page" data-testid="profile-page">
+      <div className="fz-page-h">
+        <div>
+          <span className="section-eyebrow">Account</span>
+          <h1 style={{ marginTop: 12 }}>Hello, {user.email?.split("@")[0]}</h1>
+          <p>Your profile and shopping activity in one place.</p>
         </div>
       </div>
-    </motion.div>
+
+      <div className="fz-profile-grid">
+        <motion.div
+          className="fz-profile-card"
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+        >
+          <div className="fz-avatar" data-testid="profile-avatar">{initial}</div>
+          <h3>{user.email?.split("@")[0]}</h3>
+          <div style={{ color: "var(--ink-3)", fontSize: 13, fontFamily: 'var(--font-mono)', textTransform: 'uppercase', letterSpacing: '0.06em' }}>Member since 2024</div>
+          <div className="fz-profile-stats">
+            {stats.map((s) => (
+              <div className="fz-profile-stat" key={s.label}>
+                <strong>{s.value}</strong>
+                <small>{s.label}</small>
+              </div>
+            ))}
+          </div>
+        </motion.div>
+
+        <motion.div
+          initial={{ opacity: 0, y: 16 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1 }}
+        >
+          <div className="fz-panel" style={{ marginBottom: 20 }}>
+            <h3>Profile Details</h3>
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <label className="form-label"><FiMail style={{ marginRight: 6 }} /> Email</label>
+              <input className="form-control" value={user.email || ""} readOnly data-testid="profile-email" />
+            </div>
+            <div className="form-group" style={{ marginBottom: 16 }}>
+              <label className="form-label"><FiHash style={{ marginRight: 6 }} /> User ID</label>
+              <input className="form-control" value={user.uid || ""} readOnly data-testid="profile-uid" />
+            </div>
+            <div className="form-group">
+              <label className="form-label"><FiCalendar style={{ marginRight: 6 }} /> Joined</label>
+              <input
+                className="form-control"
+                value={new Date(user.metadata?.createdAt ? Number(user.metadata.createdAt) : Date.now()).toLocaleDateString("en-IN", { year: "numeric", month: "long", day: "numeric" })}
+                readOnly
+              />
+            </div>
+          </div>
+
+          <div className="fz-panel">
+            <h3>Quick Actions</h3>
+            <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap' }}>
+              <button className="fz-btn fz-btn-ghost" onClick={() => navigate("/orders")} data-testid="profile-go-orders">
+                <FiPackage size={14} /> View Orders
+              </button>
+              <button className="fz-btn fz-btn-ghost" onClick={() => navigate("/coupons")} data-testid="profile-go-coupons">
+                <FiTag size={14} /> Coupons
+              </button>
+              <button className="fz-btn fz-btn-ghost" onClick={() => navigate("/")}>
+                <FiHeart size={14} /> Continue Shopping
+              </button>
+            </div>
+          </div>
+        </motion.div>
+      </div>
+    </section>
   );
 };
 

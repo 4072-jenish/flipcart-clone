@@ -1,29 +1,31 @@
 import React, { useState } from "react";
 import { useDispatch } from "react-redux";
-import { auth, googleProvider } from "../firebase";
 import { useNavigate, Link } from "react-router-dom";
 import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
-import { loginAsync } from "../Service/Actions/authActions";
-import { FaGoogle, FaEnvelope, FaLock, FaUserCircle } from "react-icons/fa";
-import { ToastContainer, toast } from 'react-toastify';
 import { motion } from "framer-motion";
+import { ToastContainer, toast } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
+import { FaGoogle } from "react-icons/fa";
+import { FiArrowRight, FiArrowLeft } from "react-icons/fi";
+import { auth, googleProvider } from "../firebase";
+import { loginAsync } from "../Service/Actions/authActions";
 
 const SignIn = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
-  const navigate = useNavigate();
   const dispatch = useDispatch();
+  const navigate = useNavigate();
 
-  const handleEmailLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setLoading(true);
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      dispatch(loginAsync(userCredential.user));
-      toast.success("✨ Welcome back!");
-      setTimeout(() => navigate("/"), 2000);
-    } catch (err) {
+      const u = await signInWithEmailAndPassword(auth, email, password);
+      dispatch(loginAsync({ uid: u.user.uid, email: u.user.email, metadata: u.user.metadata }));
+      toast.success("Welcome back");
+      setTimeout(() => navigate("/"), 800);
+    } catch {
       toast.error("Invalid email or password");
     } finally {
       setLoading(false);
@@ -34,113 +36,95 @@ const SignIn = () => {
     setLoading(true);
     try {
       const result = await signInWithPopup(auth, googleProvider);
-      dispatch(loginAsync(result.user));
-      toast.success("✨ Signed in with Google!");
-      setTimeout(() => navigate("/"), 2000);
-    } catch (err) {
-      toast.error("Google sign in failed");
+      dispatch(loginAsync({ uid: result.user.uid, email: result.user.email, metadata: result.user.metadata }));
+      toast.success("Signed in with Google");
+      setTimeout(() => navigate("/"), 800);
+    } catch {
+      toast.error("Google sign-in failed");
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="container min-vh-100 d-flex align-items-center justify-content-center py-5"
-    >
-      <ToastContainer position="top-right" autoClose={3000} theme="light" />
-      
-      <motion.div
-        initial={{ y: 30, opacity: 0 }}
-        animate={{ y: 0, opacity: 1 }}
-        transition={{ delay: 0.1 }}
-        className="auth-card"
-        style={{ maxWidth: "450px", width: "100%" }}
+    <>
+    <ToastContainer position="bottom-right" autoClose={2200} />
+    <div className="fz-auth-wrap" data-testid="signin-page">
+      <motion.aside
+        className="fz-auth-side"
+        initial={{ opacity: 0, x: -20 }}
+        animate={{ opacity: 1, x: 0 }}
+        transition={{ duration: 0.6 }}
       >
-        <div className="text-center mb-4">
-          <motion.div
-            initial={{ scale: 0 }}
-            animate={{ scale: 1 }}
-            transition={{ type: "spring", stiffness: 200 }}
-            className="profile-avatar mx-auto"
-          >
-            <FaUserCircle />
-          </motion.div>
-          <h2 className="fw-bold mt-3" style={{ color: 'var(--text-dark)' }}>Welcome Back!</h2>
-          <p className="text-muted">Sign in to continue shopping</p>
+        <div>
+          <button onClick={() => navigate("/")} style={{ background: 'transparent', border: 'none', color: 'var(--bg)', display: 'inline-flex', alignItems: 'center', gap: 8, fontFamily: 'var(--font-mono)', fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase', marginBottom: 40 }} data-testid="signin-back-home">
+            <FiArrowLeft size={14} /> Back to store
+          </button>
+          <span className="section-eyebrow">Members get more</span>
+          <h2 style={{ marginTop: 20 }}>
+            Welcome <em>back.</em>
+          </h2>
+          <p style={{ color: 'var(--bg)', opacity: 0.7, maxWidth: 360, marginTop: 18 }}>
+            Sign in to access your wishlist, track orders, and unlock member-only pricing on the edit.
+          </p>
         </div>
+        <div className="fz-auth-side-foot">FlipZone · est. 2024</div>
+      </motion.aside>
 
-        <form onSubmit={handleEmailLogin}>
-          <div className="mb-3">
-            <label className="form-label">
-              <FaEnvelope className="me-2" style={{ color: 'var(--primary-color)' }} />
-              Email Address
-            </label>
+      <motion.div
+        className="fz-auth-form"
+        initial={{ opacity: 0, y: 20 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.6, delay: 0.1 }}
+      >
+        <h1>Sign in</h1>
+        <p>Enter your credentials to continue</p>
+
+        <form onSubmit={handleSubmit}>
+          <div className="form-group" style={{ marginBottom: 18 }}>
+            <label className="form-label">Email</label>
             <input
-              type="email"
               className="form-control"
-              placeholder="Enter your email"
+              type="email"
+              placeholder="you@example.com"
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               required
+              data-testid="signin-email"
             />
           </div>
-
-          <div className="mb-4">
-            <label className="form-label">
-              <FaLock className="me-2" style={{ color: 'var(--primary-color)' }} />
-              Password
-            </label>
+          <div className="form-group" style={{ marginBottom: 24 }}>
+            <label className="form-label">Password</label>
             <input
-              type="password"
               className="form-control"
-              placeholder="Enter your password"
+              type="password"
+              placeholder="••••••••"
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
+              data-testid="signin-password"
             />
           </div>
-
-          <motion.button
-            whileHover={{ scale: 1.02 }}
-            whileTap={{ scale: 0.98 }}
-            type="submit"
-            className="btn-gradient w-100 py-3"
-            disabled={loading}
-          >
-            {loading ? "Signing in..." : "Sign In"}
-          </motion.button>
+          <button className="fz-btn" type="submit" disabled={loading} data-testid="signin-submit">
+            {loading ? "Signing in…" : <>Sign in <FiArrowRight size={16} /></>}
+          </button>
         </form>
 
-        <div className="position-relative my-4">
-          <hr />
-          <span className="position-absolute top-50 start-50 translate-middle px-3 bg-white text-muted">
-            OR
-          </span>
-        </div>
+        <div className="fz-auth-divider">or continue with</div>
 
-        <motion.button
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-          onClick={handleGoogle}
-          className="social-login-btn w-100 mb-3 d-flex align-items-center justify-content-center gap-2"
-          disabled={loading}
-        >
-          <FaGoogle style={{ color: '#DB4437' }} />
-          Continue with Google
-        </motion.button>
+        <button className="fz-google-btn" onClick={handleGoogle} disabled={loading} data-testid="signin-google">
+          <FaGoogle style={{ color: "#DB4437" }} /> Continue with Google
+        </button>
 
-        <p className="text-center mt-4">
-          Don't have an account?{" "}
-          <Link to="/signup" className="text-decoration-none fw-semibold" style={{ color: 'var(--primary-color)' }}>
-            Create Account
+        <p style={{ marginTop: 28, color: "var(--ink-3)", fontSize: 14 }}>
+          New to FlipZone?{" "}
+          <Link to="/signup" style={{ color: "var(--ink)", fontWeight: 600, textDecoration: "underline", textUnderlineOffset: 4 }} data-testid="signin-to-signup">
+            Create an account
           </Link>
         </p>
       </motion.div>
-    </motion.div>
+    </div>
+    </>
   );
 };
 
