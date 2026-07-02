@@ -12,7 +12,7 @@ import {
   FiHeart, FiPackage, FiTag, FiLogOut, FiChevronDown
 } from "react-icons/fi";
 
-const CATEGORIES = ["All", "Mobiles", "Electronics", "Audio", "Wearables", "Camera", "Accessories", "Toys", "Decorations"];
+const CATEGORIES = ["All", "Fashion" , "Mobiles", "Electronics", "Audio", "Wearables", "Camera", "Accessories", "Toys", "Decorations"];
 
 const Navbar = () => {
   const navigate = useNavigate();
