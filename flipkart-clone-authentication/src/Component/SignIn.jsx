@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import { useDispatch } from "react-redux";
 import { useNavigate, Link } from "react-router-dom";
 import { signInWithPopup, signInWithEmailAndPassword } from "firebase/auth";
-import { motion } from "framer-motion";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FaGoogle } from "react-icons/fa";

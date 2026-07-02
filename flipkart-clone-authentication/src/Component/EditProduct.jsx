@@ -3,7 +3,6 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useDispatch } from "react-redux";
 import axios from "axios";
 import { doc, getDoc } from "firebase/firestore";
-import { motion } from "framer-motion";
 import { ToastContainer, toast } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 import { FiUploadCloud, FiSave, FiX } from "react-icons/fi";
